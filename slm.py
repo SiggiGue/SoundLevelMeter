@@ -13,56 +13,72 @@ sample_rate = 44100
 block_length = 2048
 tau = 0.1
 
-global level, psc_stream
-level = -120
-alpha = np.exp(-1.0/(tau*(sample_rate/block_length)))
-b0 = 1 - alpha
-a1 = -alpha
-
 define("port", default=8888, help='run on the given port', type=int)
 
-def callback(in_data, frame_count, time_info, status):
-    global level, send_message
-    new_value = b0*np.mean(in_data**2)  - a1*10**(level*0.1)
-    level = 10*np.log10(new_value)
-    send_message('{:.1f}'.format(level))
-    return in_data, continue_flag
-
-psc_stream = Stream(callback=callback,
-                    sample_rate=sample_rate,
-                    block_length=block_length,
-                    output_device=False)
 
 class SlmWebSocket(tornado.websocket.WebSocketHandler):
     def open(self):
         print("WebSocket opened")
+        self.set_exponential_smoothing_tau(tau=tau)
+        self.init_stream(sample_rate=sample_rate,
+                         block_length=block_length)
         self.start_stream()
 
     def on_message(self, message):
 
         if '#start#' in message:
-            print('start')
             self.start_stream()
 
         if '#stop#' in message:
-            print('stop')
             self.stop_stream()
+
+        if '#set_tau#' in message:
+            msg = message.split()
+            print(msg)
+            if len(msg)>1:
+                tau = float(msg[1])
+                self.set_exponential_smoothing_tau(tau)
 
     def on_close(self):
         print("Websocket is closed")
 
+    def set_exponential_smoothing_tau(self, tau):
+        if tau > 0:
+            alpha = np.exp(-1.0/(tau*(sample_rate/block_length)))
+            self._b0 = 1 - alpha
+            self._a1 = -alpha
+            print("Tau accepted.")
+        else:
+            print("Tau '{}' not accepted.".format(tau))
+
+
+    def init_stream(self, sample_rate, block_length):
+        self._psc_sample_rate = sample_rate
+        self._psc_block_length = block_length
+        self._level = -120
+
+        def callback(in_data, frame_count, time_info, status):
+            new_value = self._b0*np.mean(in_data**2)  - self._a1*10**(self._level*0.1)
+            self._level = 10*np.log10(new_value)
+            self.write_message('{:.1f}'.format(self._level))
+            return in_data, continue_flag
+
+        self._psc_stream = Stream(
+            callback=callback,
+            sample_rate=self._psc_sample_rate,
+            block_length=self._psc_block_length,
+            output_device=False
+        )
+
     def start_stream(self):
-        global psc_stream, send_message
-        send_message = self.write_message
-        if not psc_stream.is_active():
+        if not self._psc_stream.is_active():
             print('Start stream')
-            psc_stream.start()
+            self._psc_stream.start()
 
     def stop_stream(self):
-        global psc_stream
-        if psc_stream.is_active():
+        if self._psc_stream.is_active():
             print('Stop stream')
-            psc_stream.stop()
+            self._psc_stream.stop()
 
 app = tornado.web.Application([(r'/', SlmWebSocket),])
 
