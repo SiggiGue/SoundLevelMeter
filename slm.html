@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta content="text/html" charset="utf-8"; http-equiv="Content-Type" />
+    <meta name="author" content="Siegfried Gündert" />
+    <meta name="copyrights" content="Siegfried Gündert" />
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,700'
+          rel='stylesheet' type='text/css'/>
+    <!-- <link href='http://fonts.googleapis.com/css?family=PT+Sans'
+               rel='stylesheet' type='text/css'>  -->
+
+    <title>Simple Level Meter</title>
+
+    <style type="text/css">
+     body {
+       background: black;
+       margin-left: 40px;
+       font-family: 'Open Sans', sans-serif;
+     }
+     .description {
+       color: white;
+       width: 450px;
+       height: 20px;
+       margin-left: 10px;
+       font-size: 16pt;
+       font-weight: 300;
+       letter-spacing: 1.5pt;
+     }
+     .val {
+       color: white;
+       font-weight: 300;
+     }
+     .buttons {
+       color: white;
+       background: rgb(20, 20, 20);
+       border: rgb(160, 160, 160) solid 1px;
+       border-radius: 15px;
+       font-family: "Open Sans" sans-serif;
+     }
+     .ioelement {
+       color: white;
+       background: rgb(60, 60, 60);
+       border: rgb(140, 140, 140) solid 1px;
+       border-radius: 15px;
+       width: 75px;
+       margin-left: 10px;
+       margin-bottom: 10px;
+       text-align: center;
+       font-family: "Open Sans", sans-serif;
+     }
+     .label {
+       color: white;
+       margin-left: 10px;
+       margin-top: 10px;
+       font-size: 11pt;
+       font-weight: 300;
+       letter-spacing: 0.75pt;
+     }
+     .text {
+       color: white;
+       font-size: 11pt;
+       font-weight: 300;
+       letter-spacing: 0.75pt;
+     }
+     #unit {
+       color: rgb(90,90,90);
+       font-size: 40pt;
+     }
+     #myval {
+       margin-left: 20px;
+       font-size: 60pt;
+     }
+     #logo {
+       margin-left: 10px;
+       margin-top: 20px;
+     }
+     #levelValue {
+       background: black;
+       border: black solid 1px;
+       width: 450px;
+       height: 120px;
+       margin-bottom: 2px;
+       margin-top: -10px;
+     }
+     #levelbarHolder {
+       background: rgb(30, 30, 30);
+       border: black solid 1px;
+       width: 450px;
+       height: 5 px;
+       border-radius: 3px;
+       margin-left: 5px;
+     }
+     #levelbar {
+       background: white;
+       width: 450px;
+       height: 5px;
+       border-radius: 3px;
+       margin-left: 0;
+     }
+     #buttonsdiv {
+       margin-top: 25px;
+       margin-left: 0px;
+     }
+
+     #settingsbutton {
+       margin-left: 50px;
+     }
+     #settingsform {
+       background: rgb(30, 30, 30);
+       border: rgb(140, 140, 140) solid 1px;
+       border-left-width: thick;
+       border-bottom-width: thick;
+       border-radius: 15px;
+       width: 300px;
+       margin-top: 5px;
+       margin-left: 150px;
+     }
+     #calibrationlevel {
+       width: 75px;
+     }
+     #websocketadress {
+       width: 250px;
+     }
+
+    </style>
+
+    <script language="JavaScript" type="text/javascript" src="jquery-2.1.0.min.js"></script>
+    <script type="text/javascript">
+     var ws = new WebSocket("ws://localhost:8888")
+     var refresh_time_value = 32
+
+     ws.onmessage = function(event) {
+       var myval = document.getElementById('myval');
+       console.log(event.data)
+       myval.innerHTML = event.data;
+       update_levelbar(event.data);
+     }
+
+     function start() {
+       ws.send('#start#');
+     }
+
+     function stop() {
+       ws.send('#stop#');
+     }
+
+     function update_levelbar(value) {
+       var levelbar = document.getElementById('levelbar');
+       levelbar.style.width = (100.0-(100.0*(parseFloat(value)/-90.0))) + '%';
+     }
+    </script>
+
+  </head>
+  <body onUnload="stop()">
+    <div>
+      <p class="description">Simple Level Meter</p>
+      <div id="levelValue">
+        <p class="val">
+          <span id="myval">0 </span>
+          <span id="unit">&#160; dB(FS)</span>
+        </p>
+      </div>
+    </div>
+    <div id="levelbarHolder">
+      <div id="levelbar"></div>
+    </div>
+    <div id="buttonsdiv">
+      <input class="buttons" type="button" value="Start" onclick="start()"/>
+      <input class="buttons" type="button" value="Stop" onclick="stop()"/>
+      <input class="buttons" type="button" id="settingsbutton" value="Settings"/>
+    </div>
+
+    <form id="settingsform">
+      <p class="description">Settings</p>
+      <span class="label">Exponential averaging time:</span></br>
+      <input class="ioelement" value=0.1 />
+      <span class="text">s</span></br>
+
+      <span class="label">Calibration:</span></br>
+      <input class="ioelement" id="calibrationlevel" value=94 />
+      <span class="text">dB(SPL)</span>
+      <input class="ioelement" type="button" id="calibratebutton" value="Calibrate!"/></br>
+
+      <span class="label">Block size:</span></br>
+      <select id="blocksizeList", class="ioelement">
+        <option>512</option>
+        <option>1024</option>
+        <option>2048</option>
+        <option>4096</option>
+        <option>8192</option>
+      </select></br>
+
+      <span class="label">WebSocket adress:</span></br>
+      <input class="ioelement" id="websocketadress" value="ws://localhost:8888" /></br>
+      <p> </p>
+    </form>
+
+    <script>
+
+     $("#settingsbutton").click(function() {
+       $("#settingsform").slideToggle("fast");
+     });
+     $("#settingsform").slideToggle("fast")
+    </script>
+  </body>
+</html>
