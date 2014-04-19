@@ -2,7 +2,7 @@
 This repository contains an implementation of a simple sound level meter displayed in the browser.
 [PySoundCard][] is used for sound card input and tornado WebSocket is used to reach through the data to the javascript  in the html page.
 
-![LevelMeter](data/screenshot.png "Simple Level Meter in the browser")
+![LevelMeter](screenshot.png "Simple Level Meter in the browser")
 
 ##Getting started
 Clone this repo, be shure to have the modules pycparser, cffi, pysoundcard and tornado to be installed.
