@@ -6,8 +6,6 @@
     <meta name="copyrights" content="Siegfried Gündert" />
     <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,300,700'
           rel='stylesheet' type='text/css'/>
-    <!-- <link href='http://fonts.googleapis.com/css?family=PT+Sans'
-               rel='stylesheet' type='text/css'>  -->
 
     <title>Simple Level Meter</title>
 
@@ -101,7 +99,6 @@
        margin-top: 25px;
        margin-left: 0px;
      }
-
      #settingsbutton {
        margin-left: 50px;
      }
@@ -117,7 +114,7 @@
      }
      #example-times {
        color: rgb(180, 180, 180);
-       font-size: 8pt
+       font-size: 8pt;
      }
      #calibrationlevel {
        width: 75px;
@@ -125,18 +122,27 @@
      #websocketaddress {
        width: 200px;
      }
-
     </style>
 
-    <!--  <script language="JavaScript" type="text/javascript" src="jquery-2.1.0.min.js"></script>-->
-    <script language="JavaScript" type="text/javascript" src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+    <!--  <script language="JavaScript" type="text/javascript"
+                  src="jquery-2.1.0.min.js"></script>-->
+    <script language="JavaScript" type="text/javascript"
+            src="http://code.jquery.com/jquery-2.1.0.min.js"></script>
+
     <script type="text/javascript">
-     var ws = new WebSocket("ws://localhost:8888")
+     var ws = new WebSocket("ws://localhost:8888");
+     var naverage = 30;
+     var count = 0;
+     var level_array = new Array(naverage);
+     var delta_level = 0
 
      ws.onmessage = function(event) {
        var myval = document.getElementById('myval');
-       myval.innerHTML = event.data;
+       myval.innerHTML = (parseFloat(event.data) + delta_level).toFixed(1);
        update_levelbar(event.data);
+       count += 1
+       count %= naverage
+       level_array[count] = parseFloat(event.data)
      }
 
      function start() {
@@ -161,8 +167,36 @@
      }
 
      function set_websocket() {
-       var address = document.getElementById('websocketaddress')
-       ws = new WebSocket(address.value)
+       var address = document.getElementById('websocketaddress');
+       ws = new WebSocket(address.value);
+     }
+
+     function calibrate() {
+       delta_level = 0;
+       count = 0;
+       setTimeout(compute_delta_level, 1400);
+       unit = document.getElementById('unit');
+       unit.innerHTML = "dB (SPL)";
+     }
+
+     function reset_calibration() {
+       delta_level = 0;
+       unit = document.getElementById('unit');
+       unit.innerHTML = "dB (FS)";
+     }
+
+     function compute_delta_level() {
+       var calibration_level = document.getElementById('calibrationlevel');
+       delta_level = parseFloat(calibration_level.value) - median(level_array);
+     }
+
+     function median(values) {
+       values.sort( function(a,b) {return a - b;} );
+       var half = Math.floor(values.length/2);
+       if(values.length % 2)
+           return values[half];
+       else
+           return (values[half-1] + values[half]) / 2.0;
      }
     </script>
 
@@ -198,28 +232,14 @@
       <span class="label">Calibration:</span></br>
       <input class="ioelement" id="calibrationlevel" type="number" value=94.0 />
       <span class="text">dB(SPL)</span>
-      <input class="buttons" type="button" id="calibratebutton" value="Calibrate"/></br>
-
-      <!-- <span class="label">Block size:</span></br>
-      <select id="blocksizeList", class="ioelement">
-        <option>512</option>
-        <option>1024</option>
-        <option>2048</option>
-        <option>4096</option>
-        <option>8192</option>
-      </select></br>
-      -->
-      <!--
-      <span class="label">WebSocket address:</span></br>
-      <input class="ioelement" id="websocketaddress" onkeypress="set_websocket()"
-             value="ws://localhost:8888"/>
-      <input class="buttons" type="button" onclick="set_websocket()" value="Connect"/></br>
-      -->
+      <input class="buttons" type="button" id="calibratebutton"
+             value="Calibrate" onclick="calibrate()"/>
+      <input class="buttons" type="button" id="reset-calibration"
+             value="Reset" onclick="reset_calibration()"/></br>
       <p> </p>
     </form>
 
     <script>
-
      $("#settingsbutton").click(function() {
        $("#settingsform").slideToggle("fast");
      });

@@ -11,7 +11,7 @@ import numpy as np
 
 sample_rate = 44100
 block_length = 2048
-tau = 0.1
+tau = 0.125
 
 define("port", default=8888, help='run on the given port', type=int)
 
