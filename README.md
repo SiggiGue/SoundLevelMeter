@@ -21,3 +21,5 @@ With the `bottle_web_server.py` you can start a web server and connect from othe
 For the future there are some plans to support weightings like A, B, and C-weighting. Maybe the communication over the WebSocket will be refactored to support a fractional octave view...
 
 Have fun!
+
+MIT license.
